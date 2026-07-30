@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#7a8855">
+<title>萌的工作台</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg-cream: #ede9dd;
+    --bg-cream-light: #f5f2e8;
+    --sidebar-bg: #ffffff;
+    --accent-green: #7a8855;
+    --accent-green-dark: #5e6b3f;
+    --accent-green-light: #95a36b;
+    --accent-purple: #9b8ec4;
+    --accent-purple-dark: #7a6ea8;
+    --accent-purple-light: #b8aed9;
+    --accent-teal: #6fb4a0;
+    --accent-teal-dark: #4f9684;
+    --accent-teal-light: #8fcdbb;
+    --task-card: #d4dfd0;
+    --task-card-done: #c8d3c4;
+    --text-dark: #3a3a32;
+    --text-muted: #8a8775;
+    --text-light: #b5b2a0;
+    --border-soft: #e5e1d3;
+    --danger: #c97a6f;
+    --video-bg: #1a1a16;
+    --shadow-soft: 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    background: var(--bg-cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .app { display: flex; min-height: 100vh; max-width: 480px; margin: 0 auto; position: relative; background: var(--bg-cream); }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 230px; height: 100vh;
+    background: var(--sidebar-bg); box-shadow: 2px 0 12px rgba(0,0,0,0.05);
+    z-index: 100; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-header { padding: 28px 22px 18px; border-bottom: 1px solid var(--border-soft); }
+  .user-name { font-size: 20px; font-weight: 700; color: var(--accent-green); margin-bottom: 4px; letter-spacing: 0.5px; }
+  .user-subtitle { font-size: 11px; color: var(--text-muted); letter-spacing: 1.5px; }
+  .menu-list { padding: 14px 12px; flex: 1; list-style: none; }
+  .menu-item {
+    display: flex; align-items: center; padding: 13px 14px; margin-bottom: 6px;
+    border-radius: 10px; cursor: pointer; transition: all 0.2s; color: var(--text-dark);
+    font-size: 15px; user-select: none; position: relative;
+  }
+  .menu-item:hover { background: var(--bg-cream-light); }
+  .menu-item.active { background: var(--accent-green); color: white; box-shadow: 0 2px 6px rgba(122,136,85,0.3); }
+  .menu-item .icon { font-size: 18px; margin-right: 12px; width: 22px; text-align: center; }
+  .menu-item .badge { margin-left: auto; background: rgba(255,255,255,0.25); color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .menu-item:not(.active) .badge { background: var(--bg-cream); color: var(--text-muted); }
+  .menu-item .tag { margin-left: auto; font-size: 10px; padding: 2px 7px; border-radius: 8px; background: var(--bg-cream); color: var(--accent-green); font-weight: 600; }
+  .menu-item.active .tag { background: rgba(255,255,255,0.25); color: white; }
+  .sidebar-footer { padding: 16px 22px 24px; border-top: 1px solid var(--border-soft); font-size: 11px; color: var(--text-light); text-align: center; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  /* Main */
+  .main { flex: 1; width: 100%; min-height: 100vh; background: var(--bg-cream); padding: 20px 18px 100px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .menu-btn { width: 40px; height: 40px; border-radius: 10px; background: white; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: var(--shadow-soft); color: var(--accent-green); }
+  .menu-btn:active { transform: scale(0.95); }
+  .menu-btn svg { width: 20px; height: 20px; }
+  .date-block { text-align: right; }
+  .date-text { font-size: 13px; color: var(--text-dark); font-weight: 500; }
+  .date-weekday { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .sync-card { background: linear-gradient(135deg, #c4d4be, #b8c9b0); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; box-shadow: var(--shadow-card); }
+  .sync-left { display: flex; align-items: center; gap: 10px; }
+  .sync-icon { width: 32px; height: 32px; background: rgba(255,255,255,0.6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .sync-text { font-size: 13px; color: var(--text-dark); font-weight: 500; }
+  .sync-btn { background: white; color: var(--accent-green); border: none; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .sync-btn:active { transform: scale(0.96); }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  .section-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; color: var(--text-dark); }
+  .section-title .icon { font-size: 18px; }
+  .section-subtitle { font-size: 12px; color: var(--text-muted); }
+  .day-status { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: rgba(122,136,85,0.1); color: var(--accent-green); border-radius: 10px; font-size: 11px; font-weight: 600; }
+
+  .progress-card { background: white; border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: var(--shadow-card); }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-label { font-size: 13px; color: var(--text-muted); }
+  .progress-value { font-size: 14px; font-weight: 700; color: var(--accent-green); }
+  .progress-bar { height: 8px; background: var(--bg-cream); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #7a8855, #95a36b); border-radius: 4px; transition: width 0.4s cubic-bezier(0.4,0,0.2,1); }
+
+  .add-task-card { background: white; border-radius: 14px; padding: 14px; margin-bottom: 18px; box-shadow: var(--shadow-card); display: flex; gap: 8px; }
+  .add-task-input { flex: 1; border: 1px solid var(--border-soft); background: var(--bg-cream-light); border-radius: 8px; padding: 10px 12px; font-size: 14px; color: var(--text-dark); outline: none; font-family: inherit; transition: border 0.2s; }
+  .add-task-input:focus { border-color: var(--accent-green); }
+  .add-task-input::placeholder { color: var(--text-light); }
+  .add-task-btn { background: var(--accent-green); color: white; border: none; padding: 0 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .add-task-btn:active { transform: scale(0.96); }
+
+  .task-list { list-style: none; }
+  .task-item { background: var(--task-card); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-card); transition: all 0.3s; animation: slideIn 0.3s ease-out; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .task-item.done { background: var(--task-card-done); opacity: 0.7; }
+  .task-item.done .task-text { text-decoration: line-through; color: var(--text-muted); }
+  .task-checkbox { width: 22px; height: 22px; border: 2px solid var(--accent-green); border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+  .task-checkbox.checked { background: var(--accent-green); }
+  .task-checkbox.checked::after { content: ""; width: 6px; height: 11px; border: solid white; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg) translate(-1px,-1px); }
+  .task-text { flex: 1; font-size: 14px; color: var(--text-dark); line-height: 1.4; word-break: break-word; }
+  .task-delete { width: 26px; height: 26px; border-radius: 6px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; font-size: 16px; }
+  .task-delete:hover { background: rgba(201,122,111,0.1); color: var(--danger); }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.6; }
+  .empty-state .text { font-size: 13px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .stat-card { background: white; border-radius: 12px; padding: 14px 8px; text-align: center; box-shadow: var(--shadow-card); }
+  .stat-value { font-size: 22px; font-weight: 700; color: var(--accent-green); line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(58,58,50,0.95); color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 200; opacity: 0; transition: all 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .fab { position: fixed; bottom: 24px; right: 24px; width: 52px; height: 52px; border-radius: 50%; background: var(--accent-green); color: white; border: none; box-shadow: 0 4px 14px rgba(122,136,85,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 80; transition: transform 0.2s; }
+  .fab:active { transform: scale(0.92); }
+  .fab svg { width: 24px; height: 24px; }
+
+  /* ====== 视频区域 ====== */
+  .video-section { margin-bottom: 20px; }
+  .video-section-title { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .video-grid { display: flex; flex-direction: column; gap: 14px; }
+  .video-card { background: white; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-card); }
+  .video-card-header { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px 10px; }
+  .video-card-num { width: 24px; height: 24px; border-radius: 6px; background: var(--accent-green); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .video-card-info { flex: 1; }
+  .video-card-title { font-size: 14px; font-weight: 600; color: var(--text-dark); line-height: 1.4; margin-bottom: 3px; }
+  .video-card-meta { font-size: 11px; color: var(--text-muted); }
+  .video-wrapper { position: relative; width: 100%; padding-bottom: 56.25%; background: var(--video-bg); }
+  .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+  .video-toggle { width: 100%; padding: 10px; background: var(--bg-cream-light); border: none; border-top: 1px solid var(--border-soft); font-size: 12px; color: var(--accent-green); font-weight: 600; cursor: pointer; }
+  .video-toggle:active { background: var(--bg-cream); }
+  .video-card.collapsed .video-wrapper { display: none; }
+
+  /* ====== 英语口语区域 ====== */
+  .en-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .en-tabs::-webkit-scrollbar { display: none; }
+  .en-tab { flex-shrink: 0; padding: 7px 14px; background: white; border: 1px solid var(--border-soft); border-radius: 20px; font-size: 12px; color: var(--text-dark); cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+  .en-tab.active { background: var(--accent-green); color: white; border-color: var(--accent-green); }
+  .en-card { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow-card); display: flex; align-items: flex-start; gap: 12px; animation: slideIn 0.3s ease-out; }
+  .en-card.practiced { background: var(--task-card-done); opacity: 0.75; }
+  .en-num { width: 26px; height: 26px; border-radius: 50%; background: var(--bg-cream); color: var(--accent-green); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .en-card.practiced .en-num { background: var(--accent-green); color: white; }
+  .en-content { flex: 1; min-width: 0; }
+  .en-sentence { font-size: 15px; font-weight: 600; color: var(--text-dark); line-height: 1.5; margin-bottom: 4px; }
+  .en-card.practiced .en-sentence { text-decoration: line-through; color: var(--text-muted); }
+  .en-translation { font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px; }
+  .en-actions { display: flex; gap: 8px; align-items: center; }
+  .en-speak-btn { background: var(--accent-green); color: white; border: none; padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s; }
+  .en-speak-btn:active { transform: scale(0.94); }
+  .en-speak-btn.speaking { background: var(--accent-green-dark); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+  .en-slow-btn { background: var(--bg-cream); color: var(--accent-green); border: none; padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .en-slow-btn:active { transform: scale(0.94); }
+  .en-practice-btn { background: transparent; color: var(--text-muted); border: 1.5px solid var(--border-soft); padding: 4px 12px; border-radius: 14px; font-size: 11px; font-weight: 600; cursor: pointer; margin-left: auto; transition: all 0.2s; }
+  .en-practice-btn.done { background: var(--accent-green); color: white; border-color: var(--accent-green); }
+  .en-progress-card { background: linear-gradient(135deg, #c4d4be, #d4dfd0); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow-card); }
+  .en-progress-title { font-size: 13px; color: var(--text-dark); font-weight: 600; margin-bottom: 8px; }
+  .en-progress-bar { height: 8px; background: rgba(255,255,255,0.5); border-radius: 4px; overflow: hidden; }
+  .en-progress-fill { height: 100%; background: var(--accent-green); border-radius: 4px; transition: width 0.4s; }
+  .en-progress-text { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+  /* ====== 读书记录区域 ====== */
+  .reading-section { margin-bottom: 20px; }
+  .reading-section-title { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .reading-hero {
+    background: linear-gradient(135deg, #d4c8e8, #c8bddf);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .reading-hero-badge { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .reading-hero-title { font-size: 13px; color: var(--accent-purple-dark); font-weight: 600; margin-bottom: 2px; }
+  .reading-hero-book { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 3px; }
+  .reading-hero-meta { font-size: 12px; color: var(--text-muted); }
+  .book-card {
+    background: white; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+    box-shadow: var(--shadow-card); display: flex; gap: 12px; align-items: flex-start;
+    animation: slideIn 0.3s ease-out; position: relative;
+  }
+  .book-month {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: var(--accent-purple); color: white;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex-shrink: 0; line-height: 1;
+  }
+  .book-month .num { font-size: 15px; font-weight: 700; }
+  .book-month .unit { font-size: 9px; margin-top: 1px; }
+  .book-month.read { background: var(--accent-green); }
+  .book-info { flex: 1; min-width: 0; }
+  .book-title { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 3px; }
+  .book-author { font-size: 12px; color: var(--accent-purple); font-weight: 600; margin-bottom: 6px; }
+  .book-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
+  .book-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .book-tag {
+    background: #ede8f4; color: var(--accent-purple-dark); font-size: 10px;
+    padding: 3px 8px; border-radius: 8px; font-weight: 600;
+  }
+  .book-check {
+    width: 28px; height: 28px; border-radius: 8px; border: 2px solid var(--accent-purple-light);
+    background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.2s;
+  }
+  .book-check.checked { background: var(--accent-purple); border-color: var(--accent-purple); }
+  .book-check.checked::after { content: ""; width: 6px; height: 11px; border: solid white; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg) translate(-1px,-1px); }
+  .book-progress { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .reading-progress-card {
+    background: linear-gradient(135deg, #d4c8e8, #c8bddf); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow-card);
+  }
+  .reading-progress-title { font-size: 13px; color: var(--text-dark); font-weight: 600; margin-bottom: 8px; }
+  .reading-progress-bar { height: 8px; background: rgba(255,255,255,0.5); border-radius: 4px; overflow: hidden; }
+  .reading-progress-fill { height: 100%; background: var(--accent-purple); border-radius: 4px; transition: width 0.4s; }
+  .reading-progress-text { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+  /* ====== 树洞区域 ====== */
+  .treehole-section { margin-bottom: 20px; }
+  .treehole-hero {
+    background: linear-gradient(135deg, #c0e2d8, #a8d4c8);
+    border-radius: 14px; padding: 20px 16px; margin-bottom: 16px;
+    box-shadow: var(--shadow-card); text-align: center;
+  }
+  .treehole-hero .tree-icon { font-size: 42px; margin-bottom: 10px; }
+  .treehole-hero .title { font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+  .treehole-hero .subtitle { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .treehole-form {
+    background: white; border-radius: 14px; padding: 16px;
+    margin-bottom: 14px; box-shadow: var(--shadow-card);
+  }
+  .treehole-form-title { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .treehole-textarea {
+    width: 100%; min-height: 90px; border: 1px solid var(--border-soft);
+    background: var(--bg-cream-light); border-radius: 10px; padding: 12px;
+    font-size: 14px; color: var(--text-dark); outline: none; font-family: inherit;
+    resize: vertical; transition: border 0.2s; margin-bottom: 10px;
+  }
+  .treehole-textarea:focus { border-color: var(--accent-teal); }
+  .treehole-textarea::placeholder { color: var(--text-light); }
+  .treehole-moods { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .treehole-mood {
+    padding: 6px 12px; border-radius: 16px; background: var(--bg-cream-light);
+    border: 1.5px solid transparent; font-size: 12px; color: var(--text-dark);
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;
+  }
+  .treehole-mood:hover { background: #e0f0ea; }
+  .treehole-mood.selected { border-color: var(--accent-teal); background: #e0f0ea; font-weight: 600; }
+  .treehole-submit {
+    width: 100%; padding: 12px; border-radius: 10px; background: var(--accent-teal);
+    color: white; border: none; font-size: 14px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(111,180,160,0.3); transition: all 0.2s;
+  }
+  .treehole-submit:active { transform: scale(0.98); }
+  .treehole-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .treehole-letter {
+    background: white; border-radius: 14px; padding: 16px;
+    margin-bottom: 14px; box-shadow: var(--shadow-card); animation: slideIn 0.3s ease-out;
+  }
+  .treehole-letter-title { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .treehole-letter-content { font-size: 13px; color: var(--text-muted); line-height: 1.7; background: var(--bg-cream-light); padding: 12px 14px; border-radius: 10px; }
+  .treehole-entries { background: white; border-radius: 14px; padding: 16px; box-shadow: var(--shadow-card); }
+  .treehole-entries-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .treehole-entries-title { font-size: 14px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 6px; }
+  .treehole-clear { font-size: 11px; color: var(--danger); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; }
+  .treehole-clear:hover { background: rgba(201,122,111,0.08); }
+  .treehole-entry {
+    padding: 12px 0; border-bottom: 1px solid var(--border-soft); animation: slideIn 0.3s ease-out;
+  }
+  .treehole-entry:last-child { border-bottom: none; }
+  .treehole-entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .treehole-entry-date { font-size: 11px; color: var(--text-light); }
+  .treehole-entry-delete { font-size: 11px; color: var(--text-light); background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+  .treehole-entry-delete:hover { color: var(--danger); background: rgba(201,122,111,0.08); }
+  .treehole-entry-mood { font-size: 12px; color: var(--accent-teal); font-weight: 600; margin-bottom: 4px; }
+  .treehole-entry-text { font-size: 13px; color: var(--text-dark); line-height: 1.5; }
+
+  @media (min-width: 768px) {
+    .app { max-width: 100%; }
+    .sidebar { position: relative; transform: translateX(0); width: 260px; }
+    .overlay { display: none; }
+    .main { padding: 30px 40px; }
+    .menu-btn { display: none; }
+    .fab { display: none; }
+  }
+</style>
+<script src="https://beacon.cdn.qq.com/sdk/4.5.9/beacon_web.min.js"></script>
+<script>
+(function(){
+  try{
+    var beacon=new BeaconAction({
+      appkey:'0WEB06U85YBSLJNL',
+      versionCode:'1.0.0',
+      channelID:'share',
+      delay:1000,
+      sessionDuration:30*60*1000,
+      isOversea:false,
+      needReportRqdEvent:false
+    });
+    beacon.onDirectUserAction('preview_page_view',{
+      'url':location.href,
+      'referrer':document.referrer,
+      'title':document.title,
+      'sandbox_id':'37f6be6a0d134c51b69dbd47ae9a7d2a'
+    });
+  }catch(e){}
+})();
+</script></head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="user-name" id="userName">萌的工作台</div>
+      <div class="user-subtitle">MENG'S WORKBENCH</div>
+    </div>
+    <ul class="menu-list" id="menuList"></ul>
+    <div class="sidebar-footer">每日打卡 · 持续精进</div>
+  </aside>
+
+  <div class="overlay" id="overlay"></div>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="打开菜单">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
+        </svg>
+      </button>
+      <div class="date-block">
+        <div class="date-text" id="dateText"></div>
+        <div class="date-weekday" id="dateWeekday"></div>
+      </div>
+    </div>
+
+    <div class="sync-card">
+      <div class="sync-left">
+        <div class="sync-icon">🔄</div>
+        <div class="sync-text">完成一项打勾，进度一目了然</div>
+      </div>
+      <button class="sync-btn" id="syncBtn">同步</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value" id="statTotal">0</div><div class="stat-label">总任务</div></div>
+      <div class="stat-card"><div class="stat-value" id="statDone">0</div><div class="stat-label">已完成</div></div>
+      <div class="stat-card"><div class="stat-value" id="statStreak">0</div><div class="stat-label">连续天数</div></div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">
+        <span class="icon" id="sectionIcon">📋</span>
+        <span id="sectionTitle">每日计划</span>
+        <span class="day-status" id="dayStatus"></span>
+      </div>
+      <div class="section-subtitle" id="sectionSubtitle">今日任务</div>
+    </div>
+
+    <div id="dynamicContent"></div>
+  </main>
+</div>
+
+<button class="fab" id="fab" aria-label="添加任务">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ============ 视频数据 ============
+  const VIDEOS = [
+    { bvid: 'BV1zGyzBXE1T', title: '即梦+豆包+剪映 AI视频制作全流程保姆级教程', meta: '270万播放 · 30集合集 · 从脚本到成片', page: 1 },
+    { bvid: 'BV1cBSrBGEa5', title: '即梦AI 4.1 新手入门系列教程（提示词/绘画/视频）', meta: '89万播放 · 28集 · 零基础到精通', page: 1 },
+    { bvid: 'BV18v2QBVEe3', title: '实拍+AI终极玩法：运镜不失真，背景随便换', meta: 'ComfyUI + Wan2.1 VACE · 电影级可控视频', page: 1 },
+    { bvid: 'BV1uhhNzxEwW', title: '为你的AI电影创建可控制的角色', meta: 'ComfyUI + AE 路径轨迹交互 · 完整短片', page: 1 }
+  ];
+
+  // ============ 英语口语数据 ============
+  const EN_SENTENCES = [
+    { cat: '问候寒暄', en: "Hi! How's it going?", zh: '嗨！最近怎么样？' },
+    { cat: '问候寒暄', en: "Long time no see! What have you been up to?", zh: '好久不见！最近在忙什么？' },
+    { cat: '问候寒暄', en: "Good morning! How's your day going so far?", zh: '早上好！今天过得怎么样？' },
+    { cat: '问候寒暄', en: "Have a nice day!", zh: '祝你今天过得愉快！' },
+    { cat: '问候寒暄', en: "It's great to see you again!", zh: '很高兴再次见到你！' },
+    { cat: '问候寒暄', en: "How have you been?", zh: '你最近好吗？' },
+    { cat: '日常生活', en: "What are you up to today?", zh: '你今天打算做什么？' },
+    { cat: '日常生活', en: "I'm just hanging out.", zh: '我就是随便待着。' },
+    { cat: '日常生活', en: "Let's catch up later.", zh: '我们晚点再聊。' },
+    { cat: '日常生活', en: "I'm starving. Let's grab something to eat.", zh: '我快饿死了，咱们吃点东西吧。' },
+    { cat: '日常生活', en: "Could you speak a little slower? I can't follow.", zh: '你能说慢一点吗？我跟不上。' },
+    { cat: '日常生活', en: "That sounds great! I'd love to join.", zh: '听起来太棒了！我很乐意加入。' },
+    { cat: '请求帮助', en: "Could you give me a hand?", zh: '你能帮我一下吗？' },
+    { cat: '请求帮助', en: "Would you mind opening the window?", zh: '你介意开一下窗吗？' },
+    { cat: '请求帮助', en: "Can I ask you a quick question?", zh: '我能问个简单的问题吗？' },
+    { cat: '请求帮助', en: "Do you need a hand?", zh: '需要帮忙吗？' },
+    { cat: '请求帮助', en: "No problem! I'll do it right away.", zh: '没问题！我这就去做。' },
+    { cat: '请求帮助', en: "I'm afraid I can't. I have to run.", zh: '恐怕不行，我得赶紧走了。' },
+    { cat: '购物消费', en: "How much is this?", zh: '这个多少钱？' },
+    { cat: '购物消费', en: "Do you have this in a medium?", zh: '这个有中号吗？' },
+    { cat: '购物消费', en: "Is there a discount on this?", zh: '这个有折扣吗？' },
+    { cat: '购物消费', en: "Can I pay by card?", zh: '可以刷卡吗？' },
+    { cat: '购物消费', en: "I'm just looking, thanks.", zh: '我随便看看，谢谢。' },
+    { cat: '购物消费', en: "Could I get a receipt, please?", zh: '请给我一张收据好吗？' },
+    { cat: '餐厅点餐', en: "I'd like to order the pasta, please.", zh: '我想点一份意大利面。' },
+    { cat: '餐厅点餐', en: "Could we have the bill, please?", zh: '请结账。' },
+    { cat: '餐厅点餐', en: "What do you recommend?", zh: '你推荐什么？' },
+    { cat: '餐厅点餐', en: "This is delicious!", zh: '这个很好吃！' },
+    { cat: '餐厅点餐', en: "Can I get this to go?", zh: '这个可以打包吗？' },
+    { cat: '餐厅点餐', en: "I'll have the same as him.", zh: '我跟他点一样的。' },
+    { cat: '旅行出行', en: "Excuse me, where's the nearest subway station?", zh: '请问最近的地铁站在哪？' },
+    { cat: '旅行出行', en: "Go straight and turn left at the traffic lights.", zh: '直走，在红绿灯处左转。' },
+    { cat: '旅行出行', en: "How long does it take to get there?", zh: '到那里要多久？' },
+    { cat: '旅行出行', en: "I'd like to book a room for two nights.", zh: '我想订一个房间，住两晚。' },
+    { cat: '旅行出行', en: "What time does the train leave?", zh: '火车几点发车？' },
+    { cat: '旅行出行', en: "Is this seat taken?", zh: '这个座位有人吗？' },
+    { cat: '工作学习', en: "Let's take this offline.", zh: '我们会后单独讨论。' },
+    { cat: '工作学习', en: "I'll follow up by email.", zh: '我会邮件跟进。' },
+    { cat: '工作学习', en: "Can we reschedule?", zh: '我们能改时间吗？' },
+    { cat: '工作学习', en: "I'm working on it.", zh: '我正在处理。' },
+    { cat: '工作学习', en: "That's a great suggestion!", zh: '这个建议很好！' },
+    { cat: '工作学习', en: "Please find the attached file.", zh: '请查收附件。' },
+    { cat: '表达感受', en: "I'm really happy today!", zh: '我今天很开心！' },
+    { cat: '表达感受', en: "You always cheer me up.", zh: '你总能让我开心起来。' },
+    { cat: '表达感受', en: "I'm feeling nervous.", zh: '我有点紧张。' },
+    { cat: '表达感受', en: "That means a lot to me.", zh: '这对我意义重大。' },
+    { cat: '表达感受', en: "I can't stop smiling.", zh: '我忍不住一直笑。' },
+    { cat: '表达感受', en: "I'm so proud of you!", zh: '我为你感到骄傲！' },
+    { cat: '礼貌表达', en: "Thank you so much for your help.", zh: '非常感谢你的帮助。' },
+    { cat: '礼貌表达', en: "Don't mention it! I'm happy to help.", zh: '别客气！很乐意帮忙。' },
+    { cat: '礼貌表达', en: "I'm so sorry for being late.", zh: '抱歉我迟到了。' },
+    { cat: '礼貌表达', en: "Excuse me, could you repeat that?", zh: '不好意思，能再说一遍吗？' },
+    { cat: '礼貌表达', en: "I really appreciate it.", zh: '我真的很感激。' },
+    { cat: '礼貌表达', en: "No worries at all.", zh: '完全没关系。' },
+    { cat: '观点表达', en: "I totally agree with you.", zh: '我完全同意。' },
+    { cat: '观点表达', en: "What do you think?", zh: '你觉得呢？' },
+    { cat: '观点表达', en: "That's a good point.", zh: '说得有道理。' },
+    { cat: '观点表达', en: "I see what you mean.", zh: '我明白你的意思。' },
+    { cat: '观点表达', en: "Let me think about it.", zh: '让我想想。' },
+    { cat: '观点表达', en: "I'm not so sure about that.", zh: '我对此不太确定。' }
+  ];
+
+  // ============ 书单数据（女性成长 + 理财） ============
+  const BOOKS = [
+    { month: 1, title: '你当像鸟飞往你的山', author: '塔拉·韦斯特弗', desc: '一个十七岁前从未踏入教室的大山女孩，通过教育最终获得剑桥博士学位。教育不是被规训，而是拓展思维的边界。', tags: ['女性成长','自我觉醒','教育'] },
+    { month: 2, title: '小狗钱钱', author: '博多·舍费尔', desc: '一本关于金钱的童话，讲述12岁女孩吉娅和会说话的小狗钱钱的故事，理财意识从娃娃抓起。', tags: ['财商启蒙','理财入门','亲子共读'] },
+    { month: 3, title: '82年生的金智英', author: '赵南柱', desc: '一个普通韩国女性的成长史，照见无数女性的共同命运。你不是一个人在面对这些。', tags: ['女性主义','社会现实','觉醒'] },
+    { month: 4, title: '富爸爸穷爸爸', author: '罗伯特·清崎', desc: '穷人和富人最大的区别不是钱，是思维。两个爸爸，两种财富观，重塑你的财务认知。', tags: ['财富思维','财商','经典'] },
+    { month: 5, title: '成为', author: '米歇尔·奥巴马', desc: '从芝加哥南城到白宫，一个女性如何找到自己的声音并勇敢成为自己。', tags: ['自传','女性力量','励志'] },
+    { month: 6, title: '纳瓦尔宝典', author: '埃里克·乔根森', desc: '硅谷著名天使投资人纳瓦尔的智慧箴言，关于财富、幸福与人生杠杆的清醒建议。', tags: ['财富自由','认知','哲学'] },
+    { month: 7, title: '房思琪的初恋乐园', author: '林奕含', desc: '用文学的方式叩问社会之痛，让我们直面那些不该被沉默的声音。', tags: ['文学','女性创伤','社会议题'] },
+    { month: 8, title: '向前一步', author: '谢丽尔·桑德伯格', desc: 'Facebook COO 给职场女性的真诚建议：勇敢坐到桌前，Lean In。', tags: ['职场','女性领导力','成长'] },
+    { month: 9, title: '巴比伦富翁的理财课', author: '乔治·克拉森', desc: '古巴比伦最有钱的人分享的7个理财法则，简单却历久弥新，是存钱的第一本书。', tags: ['理财入门','储蓄','经典'] },
+    { month: 10, title: '厌女', author: '上野千鹤子', desc: '日本女性主义代表学者的代表作，剖析社会文化中无处不在的厌女症。', tags: ['女性主义','社会观察','理论'] },
+    { month: 11, title: '穷查理宝典', author: '查理·芒格', desc: '巴菲特搭档芒格的智慧合集，关于多元思维模型、终身学习和价值投资。', tags: ['投资','思维模型','智慧'] },
+    { month: 12, title: '小妇人', author: '路易莎·梅·奥尔科特', desc: '四个性格迥异的姐妹，在成长中探索爱、梦想、独立与归属的永恒命题。', tags: ['文学','女性成长','经典'] }
+  ];
+
+  // ============ 树洞回信数据 ============
+  const TREEHOLE_RESPONSES = {
+    '开心': [
+      '你的快乐我都听到了，替你高兴！把这份好心情存起来，它会陪你走过不那么亮的日子。✨',
+      '能感受到你此刻的开心，像阳光一样温暖。把这份喜悦记录下来，未来回看会是很珍贵的回忆。'
+    ],
+    '难过': [
+      '难过的时候，允许自己哭一场。眼泪从来不是软弱，是心在给自己松绑。',
+      '今天辛苦了。你已经做得足够好，明天再试一次也没关系。',
+      '把难过放在这里吧，我会替你收着。你不必一直坚强。'
+    ],
+    '焦虑': [
+      '焦虑的反义词不是平静，是具体。把一件事拆成下一步，焦虑就会变小。',
+      '未来还没来，你只需要处理眼前这一件。呼吸三次，慢慢来。',
+      '允许自己慢一点。你不是机器，你是一个会累的人。'
+    ],
+    '愤怒': [
+      '愤怒是身体在替你喊停。先停一停，识别一下是什么触发了你。',
+      '你的感受完全合理。先别急着压抑它，把它写下来已经是好的开始。',
+      '允许愤怒存在，但别让它替你做决定。今晚早点休息。'
+    ],
+    '迷茫': [
+      '迷茫不是迷路，是你正在找一条属于自己的路。',
+      '不用急。所有确定的事都是从"不知道"开始的。',
+      '今天做一件小而确定的事就好，不必看清整个未来。'
+    ],
+    '感恩': [
+      '能记录下感恩的事，是给生活的一份礼物。保持这种觉察感。',
+      '你的心很柔软，看得到生活里细小的好。继续这样下去。',
+      '把今天让你感恩的小事收进口袋里，留给未来某天需要的时候。'
+    ]
+  };
+
+  // ============ 分类配置 ============
+  const CATEGORIES = [
+    { id: 'daily', name: '每日计划', icon: '📋', type: 'tasks',
+      defaults: [{ text: '早起 6:30 起床' }, { text: '30 分钟运动 / 拉伸' }, { text: '晚间复盘今日 3 件好事' }, { text: '23:30 前入睡' }]
+    },
+    { id: 'video', name: '爆款AI短视频/二创', icon: '🔥', type: 'video',
+      defaults: [{ text: '刷 5 条对标账号爆款选题' }, { text: '记录 2 条今日选题灵感' }, { text: '完成 1 条 AI 短视频脚本' }, { text: '剪辑 + 字幕 + 封面' }, { text: '发布并同步到 3 个平台' }]
+    },
+    { id: 'saving', name: '存钱计划', icon: '💰', type: 'tasks',
+      defaults: [{ text: '记账今日每一笔支出' }, { text: '不点外卖 / 自己做饭' }, { text: '不喝奶茶 / 咖啡省钱' }, { text: '睡前检查今日结余' }]
+    },
+    { id: 'teach', name: '教资学习', icon: '📚', type: 'tasks',
+      defaults: [{ text: '背诵 20 个核心知识点' }, { text: '刷 30 道选择题' }, { text: '整理错题本 5 道' }, { text: '看 1 节教学技能网课' }]
+    },
+    { id: 'english', name: '英语学习', icon: '🌍', type: 'english',
+      defaults: [{ text: '背 15 个新单词 + 复习' }, { text: '听 1 篇 VOA / BBC 慢速' }, { text: '跟读 10 分钟口语（下方句子）' }, { text: '写 3 句英语日记' }]
+    },
+    { id: 'reading', name: '每日阅读', icon: '📖', type: 'reading',
+      defaults: [{ text: '阅读今日书单至少 30 分钟' }, { text: '摘抄 3 条有感触的金句' }, { text: '写 100 字读书笔记或感悟' }]
+    },
+    { id: 'treehole', name: '树洞', icon: '🌳', type: 'treehole',
+      defaults: [{ text: '写下一件今天的心事' }, { text: '记录一个让你感恩的小事' }]
+    }
+  ];
+
+  // ============ 状态 ============
+  const STORAGE_KEY = 'meng_workbench_v3';
+  let state = loadState();
+  let currentCategory = state.lastCategory || 'daily';
+  let currentEnCat = '问候寒暄';
+
+  function loadState() {
+    try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) return JSON.parse(raw); } catch(e) {}
+    return { lastCategory: 'daily', data: {}, enPracticed: {}, booksRead: {}, treehole: { entries: [], lastResponse: '' } };
+  }
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function currentMonth() { return new Date().getMonth() + 1; }
+  function formatDate() {
+    const d = new Date();
+    const weekdays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+    return { text: `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`, weekday: weekdays[d.getDay()] };
+  }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  function ensureCategoryData(catId) {
+    if (!state.data[catId]) state.data[catId] = {};
+    const d = today();
+    if (!state.data[catId][d]) {
+      state.data[catId][d] = { tasks: [] };
+      const cat = CATEGORIES.find(c => c.id === catId);
+      if (cat && cat.defaults) {
+        cat.defaults.forEach(def => {
+          state.data[catId][d].tasks.push({ id: uid(), text: def.text, done: false, createdAt: Date.now(), isDefault: true });
+        });
+      }
+    }
+  }
+  function getTodayTasks(catId) { ensureCategoryData(catId); return state.data[catId][today()].tasks; }
+
+  // ============ 渲染菜单 ============
+  function renderMenu() {
+    const menuList = document.getElementById('menuList');
+    menuList.innerHTML = CATEGORIES.map(cat => {
+      const tasks = getTodayTasks(cat.id);
+      const done = tasks.filter(t => t.done).length;
+      const total = tasks.length;
+      const activeCls = cat.id === currentCategory ? 'active' : '';
+      let tag = '';
+      if (cat.type === 'video') tag = '<span class="tag">视频</span>';
+      else if (cat.type === 'english') tag = '<span class="tag">口语</span>';
+      else if (cat.type === 'reading') tag = '<span class="tag">书单</span>';
+      else if (cat.type === 'treehole') tag = '<span class="tag">倾诉</span>';
+      const badge = total > 0 && !tag ? `<span class="badge">${done}/${total}</span>` : '';
+      return `<li class="menu-item ${activeCls}" data-cat="${cat.id}">
+        <span class="icon">${cat.icon}</span><span>${cat.name}</span>${tag||badge}
+      </li>`;
+    }).join('');
+    menuList.querySelectorAll('.menu-item').forEach(el => {
+      el.addEventListener('click', () => {
+        currentCategory = el.dataset.cat;
+        state.lastCategory = currentCategory;
+        saveState();
+        render();
+        if (window.innerWidth < 768) closeSidebar();
+      });
+    });
+  }
+
+  // ============ 渲染头部 ============
+  function renderHeader() {
+    const cat = CATEGORIES.find(c => c.id === currentCategory);
+    document.getElementById('sectionIcon').textContent = cat.icon;
+    document.getElementById('sectionTitle').textContent = cat.name;
+    const date = formatDate();
+    document.getElementById('dateText').textContent = date.text;
+    document.getElementById('dateWeekday').textContent = date.weekday;
+    document.getElementById('userName').textContent = '萌的工作台';
+  }
+
+  // ============ 渲染统计 ============
+  function renderStats() {
+    const cat = CATEGORIES.find(c => c.id === currentCategory);
+    const tasks = getTodayTasks(currentCategory);
+    const total = tasks.length;
+    const done = tasks.filter(t => t.done).length;
+    let extraDone = 0, extraTotal = 0;
+    if (cat.type === 'english') {
+      const practiced = state.enPracticed[today()] || [];
+      extraDone = practiced.length;
+      extraTotal = EN_SENTENCES.length;
+    } else if (cat.type === 'reading') {
+      const read = state.booksRead || {};
+      extraDone = Object.values(read).filter(v => v).length;
+      extraTotal = BOOKS.length;
+    }
+    const combinedDone = done + extraDone;
+    const combinedTotal = total + extraTotal;
+    const percent = combinedTotal === 0 ? 0 : Math.round(combinedDone / combinedTotal * 100);
+    document.getElementById('statTotal').textContent = combinedTotal;
+    document.getElementById('statDone').textContent = combinedDone;
+    document.getElementById('statStreak').textContent = calcStreak();
+    const ds = document.getElementById('dayStatus');
+    if (combinedTotal > 0 && combinedDone === combinedTotal) ds.textContent = '✨ 全部完成';
+    else if (combinedDone > 0) ds.textContent = `${combinedDone}/${combinedTotal}`;
+    else ds.textContent = '';
+    return { total, done, percent, extraDone, extraTotal };
+  }
+
+  function calcStreak() {
+    let count = 0;
+    const catData = state.data[currentCategory] || {};
+    const dates = Object.keys(catData).sort().reverse();
+    for (const d of dates) {
+      const tasks = catData[d].tasks || [];
+      if (tasks.length > 0 && tasks.every(t => t.done)) count++;
+      else if (tasks.length > 0) break;
+    }
+    return count;
+  }
+
+  // ============ 动态内容渲染 ============
+  function renderDynamic() {
+    const cat = CATEGORIES.find(c => c.id === currentCategory);
+    const container = document.getElementById('dynamicContent');
+    if (cat.type === 'video') {
+      container.innerHTML = renderVideoSection() + renderProgressAndTasks();
+      bindVideoEvents(); bindTaskEvents();
+    } else if (cat.type === 'english') {
+      container.innerHTML = renderEnglishSection() + renderProgressAndTasks();
+      bindEnglishEvents(); bindTaskEvents();
+    } else if (cat.type === 'reading') {
+      container.innerHTML = renderReadingSection() + renderProgressAndTasks();
+      bindReadingEvents(); bindTaskEvents();
+    } else if (cat.type === 'treehole') {
+      container.innerHTML = renderTreeHoleSection() + renderProgressAndTasks();
+      bindTreeHoleEvents(); bindTaskEvents();
+    } else {
+      container.innerHTML = renderProgressAndTasks();
+      bindTaskEvents();
+    }
+    renderTaskList();
+  }
+
+  function renderProgressAndTasks() {
+    return `
+      <div class="progress-card">
+        <div class="progress-header">
+          <div class="progress-label">今日完成度</div>
+          <div class="progress-value" id="progressValue">0%</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      </div>
+      <div class="add-task-card">
+        <input type="text" class="add-task-input" id="taskInput" placeholder="添加新任务，回车保存..." maxlength="100" />
+        <button class="add-task-btn" id="addTaskBtn">添加</button>
+      </div>
+      <ul class="task-list" id="taskList"></ul>
+    `;
+  }
+
+  // ============ 视频区 ============
+  function renderVideoSection() {
+    const cards = VIDEOS.map((v, i) => `
+      <div class="video-card ${i > 0 ? 'collapsed' : ''}" data-idx="${i}">
+        <div class="video-card-header">
+          <div class="video-card-num">${i+1}</div>
+          <div class="video-card-info">
+            <div class="video-card-title">${v.title}</div>
+            <div class="video-card-meta">${v.meta}</div>
+          </div>
+        </div>
+        ${i === 0 ? `<div class="video-wrapper"><iframe src="https://player.bilibili.com/player.html?bvid=${v.bvid}&page=${v.page||1}&high_quality=1&danmaku=0&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" referrerpolicy="no-referrer"></iframe></div>` : ''}
+        <button class="video-toggle" data-action="toggle">${i > 0 ? '▶ 点击播放' : '收起视频'}</button>
+      </div>
+    `).join('');
+    return `<div class="video-section"><div class="video-section-title">🎬 爆款参考视频（点击即可播放）</div><div class="video-grid">${cards}</div></div>`;
+  }
+  function bindVideoEvents() {
+    document.querySelectorAll('.video-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const card = e.target.closest('.video-card');
+        const idx = parseInt(card.dataset.idx);
+        const v = VIDEOS[idx];
+        const wrapper = card.querySelector('.video-wrapper');
+        if (card.classList.contains('collapsed')) {
+          if (!wrapper) {
+            const div = document.createElement('div');
+            div.className = 'video-wrapper';
+            div.innerHTML = `<iframe src="https://player.bilibili.com/player.html?bvid=${v.bvid}&page=${v.page||1}&high_quality=1&danmaku=0&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" referrerpolicy="no-referrer"></iframe>`;
+            card.insertBefore(div, e.target);
+          } else { wrapper.style.display = ''; }
+          card.classList.remove('collapsed');
+          e.target.textContent = '收起视频';
+        } else {
+          if (wrapper) wrapper.style.display = 'none';
+          card.classList.add('collapsed');
+          e.target.textContent = '▶ 点击播放';
+        }
+      });
+    });
+  }
+
+  // ============ 英语口语区 ============
+  function renderEnglishSection() {
+    const cats = [...new Set(EN_SENTENCES.map(s => s.cat))];
+    const practiced = state.enPracticed[today()] || [];
+    const practicedSet = new Set(practiced);
+    const doneCount = practicedSet.size;
+    const total = EN_SENTENCES.length;
+    const percent = Math.round(doneCount / total * 100);
+    const tabs = cats.map(c => `<div class="en-tab ${c === currentEnCat ? 'active' : ''}" data-cat="${c}">${c}</div>`).join('');
+    const sentences = EN_SENTENCES.filter(s => s.cat === currentEnCat);
+    const cards = sentences.map((s, i) => {
+      const globalIdx = EN_SENTENCES.indexOf(s);
+      const isDone = practicedSet.has(globalIdx);
+      return `<div class="en-card ${isDone ? 'practiced' : ''}" data-idx="${globalIdx}">
+        <div class="en-num">${i+1}</div>
+        <div class="en-content">
+          <div class="en-sentence">${escapeHtml(s.en)}</div>
+          <div class="en-translation">${escapeHtml(s.zh)}</div>
+          <div class="en-actions">
+            <button class="en-speak-btn" data-action="speak">🔊 朗读</button>
+            <button class="en-slow-btn" data-action="slow">🐢 慢速</button>
+            <button class="en-practice-btn ${isDone ? 'done' : ''}" data-action="practice">${isDone ? '✓ 已练' : '标记已练'}</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return `
+      <div class="en-progress-card">
+        <div class="en-progress-title">🗣️ 今日口语练习进度</div>
+        <div class="en-progress-bar"><div class="en-progress-fill" style="width:${percent}%"></div></div>
+        <div class="en-progress-text">已练习 ${doneCount} / ${total} 句 · ${cats.length} 个场景</div>
+      </div>
+      <div class="en-tabs">${tabs}</div>
+      <div class="video-section-title" style="margin-top:14px">📖 ${currentEnCat}（${sentences.length} 句）</div>
+      <div id="enCards">${cards}</div>
+    `;
+  }
+  function bindEnglishEvents() {
+    document.querySelectorAll('.en-tab').forEach(tab => {
+      tab.addEventListener('click', () => { currentEnCat = tab.dataset.cat; renderDynamic(); renderStats(); updateProgress(); });
+    });
+    document.querySelectorAll('.en-card').forEach(card => {
+      const idx = parseInt(card.dataset.idx);
+      card.querySelector('[data-action="speak"]').addEventListener('click', () => speakSentence(EN_SENTENCES[idx].en, false, card));
+      card.querySelector('[data-action="slow"]').addEventListener('click', () => speakSentence(EN_SENTENCES[idx].en, true, card));
+      card.querySelector('[data-action="practice"]').addEventListener('click', () => toggleEnPractice(idx));
+    });
+  }
+  function speakSentence(text, slow, card) {
+    if (!('speechSynthesis' in window)) { showToast('浏览器不支持语音朗读'); return; }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US'; utter.rate = slow ? 0.5 : 0.9; utter.pitch = 1;
+    const targetBtn = card.querySelector(slow ? '[data-action="slow"]' : '[data-action="speak"]');
+    targetBtn.classList.add('speaking');
+    utter.onend = () => targetBtn.classList.remove('speaking');
+    utter.onerror = () => targetBtn.classList.remove('speaking');
+    window.speechSynthesis.speak(utter);
+  }
+  function toggleEnPractice(idx) {
+    const d = today();
+    if (!state.enPracticed[d]) state.enPracticed[d] = [];
+    const arr = state.enPracticed[d];
+    const pos = arr.indexOf(idx);
+    if (pos >= 0) { arr.splice(pos, 1); showToast('已取消标记'); }
+    else { arr.push(idx); showToast('✓ 练习打卡！'); }
+    saveState(); renderDynamic(); renderStats(); updateProgress(); renderMenu();
+  }
+
+  // ============ 读书记录区 ============
+  function renderReadingSection() {
+    const cm = currentMonth();
+    const currentBook = BOOKS.find(b => b.month === cm);
+    const readSet = new Set();
+    Object.entries(state.booksRead || {}).forEach(([k, v]) => { if (v) readSet.add(parseInt(k)); });
+    const readCount = readSet.size;
+    const total = BOOKS.length;
+    const percent = Math.round(readCount / total * 100);
+    const hero = currentBook ? `
+      <div class="reading-hero">
+        <div class="reading-hero-badge">📕</div>
+        <div>
+          <div class="reading-hero-title">本月推荐 · ${cm}月</div>
+          <div class="reading-hero-book">《${currentBook.title}》</div>
+          <div class="reading-hero-meta">${currentBook.author}</div>
+        </div>
+      </div>
+    ` : '';
+    const progress = `
+      <div class="reading-progress-card">
+        <div class="reading-progress-title">📚 全年阅读进度</div>
+        <div class="reading-progress-bar"><div class="reading-progress-fill" style="width:${percent}%"></div></div>
+        <div class="reading-progress-text">已读完 ${readCount} / ${total} 本 · 坚持每月一本</div>
+      </div>
+    `;
+    const books = BOOKS.map(b => {
+      const isRead = readSet.has(b.month);
+      return `
+        <div class="book-card" data-month="${b.month}">
+          <div class="book-month ${isRead ? 'read' : ''}"><span class="num">${b.month}</span><span class="unit">月</span></div>
+          <div class="book-info">
+            <div class="book-title">《${b.title}》</div>
+            <div class="book-author">${b.author}</div>
+            <div class="book-desc">${b.desc}</div>
+            <div class="book-tags">${b.tags.map(t => `<span class="book-tag">${t}</span>`).join('')}</div>
+          </div>
+          <div class="book-check ${isRead ? 'checked' : ''}" data-action="read" title="标记已读"></div>
+        </div>
+      `;
+    }).join('');
+    return `
+      <div class="reading-section">
+        <div class="reading-section-title">📖 读书记录 · 每月一本 · 女性成长与理财书单</div>
+        ${hero}
+        ${progress}
+        <div class="video-section-title">📚 全年书单</div>
+        ${books}
+      </div>
+    `;
+  }
+  function bindReadingEvents() {
+    document.querySelectorAll('.book-check').forEach(el => {
+      el.addEventListener('click', () => {
+        const month = parseInt(el.closest('.book-card').dataset.month);
+        if (!state.booksRead) state.booksRead = {};
+        const isRead = !!state.booksRead[month];
+        state.booksRead[month] = !isRead;
+        saveState();
+        renderDynamic();
+        renderStats();
+        updateProgress();
+        renderMenu();
+        showToast(state.booksRead[month] ? `✓ 《${BOOKS.find(b=>b.month===month).title}》已读！` : '已取消已读标记');
+      });
+    });
+  }
+
+  // ============ 树洞区 ============
+  function renderTreeHoleSection() {
+    const entries = state.treehole.entries || [];
+    const lastResponse = state.treehole.lastResponse || '';
+    const moods = [
+      { key: '开心', emoji: '😊' },
+      { key: '难过', emoji: '😢' },
+      { key: '焦虑', emoji: '😰' },
+      { key: '愤怒', emoji: '😠' },
+      { key: '迷茫', emoji: '😶' },
+      { key: '感恩', emoji: '🥰' }
+    ];
+    const entriesHTML = entries.length === 0
+      ? '<div style="text-align:center;color:var(--text-light);font-size:12px;padding:10px 0;">还没有心事记录~</div>'
+      : entries.slice().reverse().map(e => `
+        <div class="treehole-entry" data-id="${e.id}">
+          <div class="treehole-entry-header">
+            <div class="treehole-entry-date">${e.date}</div>
+            <button class="treehole-entry-delete" data-action="del-entry">删除</button>
+          </div>
+          <div class="treehole-entry-mood">${e.mood}</div>
+          <div class="treehole-entry-text">${escapeHtml(e.text)}</div>
+        </div>
+      `).join('');
+    return `
+      <div class="treehole-section">
+        <div class="treehole-hero">
+          <div class="tree-icon">🌳</div>
+          <div class="title">说给树洞听 · 安全又温暖</div>
+          <div class="subtitle">在这里，你可以倾诉任何心事。<br>所有内容只保存在你的手机上，无人知晓。</div>
+        </div>
+        <div class="treehole-form">
+          <div class="treehole-form-title">✍️ 写下你的心事</div>
+          <textarea class="treehole-textarea" id="treeholeText" placeholder="今天想说点什么..."></textarea>
+          <div class="treehole-moods" id="treeholeMoods">
+            ${moods.map(m => `<div class="treehole-mood" data-mood="${m.key}">${m.emoji} ${m.key}</div>`).join('')}
+          </div>
+          <button class="treehole-submit" id="treeholeSubmit">投递给树洞</button>
+        </div>
+        ${lastResponse ? `
+          <div class="treehole-letter">
+            <div class="treehole-letter-title">💌 树洞回信</div>
+            <div class="treehole-letter-content">${escapeHtml(lastResponse)}</div>
+          </div>
+        ` : ''}
+        <div class="treehole-entries">
+          <div class="treehole-entries-header">
+            <div class="treehole-entries-title">📖 心事记录</div>
+            ${entries.length > 0 ? '<button class="treehole-clear" id="treeholeClear">清空</button>' : ''}
+          </div>
+          ${entriesHTML}
+        </div>
+      </div>
+    `;
+  }
+  function bindTreeHoleEvents() {
+    let selectedMood = '';
+    document.querySelectorAll('.treehole-mood').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.treehole-mood').forEach(m => m.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedMood = el.dataset.mood;
+      });
+    });
+    const submitBtn = document.getElementById('treeholeSubmit');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => {
+        const text = document.getElementById('treeholeText').value.trim();
+        if (!text && !selectedMood) { showToast('写下你的心情再投递吧'); return; }
+        if (!text) { showToast('写点内容吧'); return; }
+        if (!selectedMood) { showToast('选一个心情吧'); return; }
+        const responses = TREEHOLE_RESPONSES[selectedMood] || TREEHOLE_RESPONSES['迷茫'];
+        const response = responses[Math.floor(Math.random() * responses.length)];
+        if (!state.treehole) state.treehole = { entries: [], lastResponse: '' };
+        state.treehole.entries.push({ id: uid(), text, mood: selectedMood, date: today(), time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) });
+        state.treehole.lastResponse = response;
+        saveState();
+        renderDynamic();
+        showToast('✓ 树洞已收到你的心事');
+      });
+    }
+    document.querySelectorAll('.treehole-entry-delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const entryId = e.target.closest('.treehole-entry').dataset.id;
+        if (!state.treehole) return;
+        state.treehole.entries = state.treehole.entries.filter(e => e.id !== entryId);
+        saveState();
+        renderDynamic();
+        showToast('已删除');
+      });
+    });
+    const clearBtn = document.getElementById('treeholeClear');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (!confirm('确定要清空所有心事记录吗？不可恢复。')) return;
+        state.treehole.entries = [];
+        saveState();
+        renderDynamic();
+        showToast('已清空');
+      });
+    }
+  }
+
+  // ============ 任务区 ============
+  function renderTaskList() {
+    const taskList = document.getElementById('taskList');
+    if (!taskList) return;
+    const tasks = getTodayTasks(currentCategory);
+    if (tasks.length === 0) {
+      taskList.innerHTML = `<div class="empty-state"><div class="icon">📝</div><div class="text">还没有任务，添加你的第一个任务吧</div></div>`;
+      return;
+    }
+    taskList.innerHTML = tasks.map(t => `
+      <li class="task-item ${t.done ? 'done' : ''}" data-id="${t.id}">
+        <div class="task-checkbox ${t.done ? 'checked' : ''}" data-action="toggle"></div>
+        <div class="task-text">${escapeHtml(t.text)}</div>
+        <button class="task-delete" data-action="delete" aria-label="删除">×</button>
+      </li>
+    `).join('');
+  }
+  function bindTaskEvents() {
+    // 添加任务按钮和输入框每次 renderDynamic() 都会重新生成，
+    // 这里直接绑定到当前实例（同一次渲染周期内有效）。
+    const addBtn = document.getElementById('addTaskBtn');
+    const input = document.getElementById('taskInput');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => { addTask(input.value); input.value = ''; input.focus(); });
+    }
+    if (input) {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { addTask(input.value); input.value = ''; }
+      });
+    }
+    // 任务打勾/删除：使用事件委托绑定到稳定的 #dynamicContent 容器上。
+    // #taskList 本身会在 renderDynamic() 中被整体替换，直接绑定会丢失；
+    // 绑定到 #dynamicContent（始终存在，只换 innerHTML）即可一次绑定永久生效。
+    const dynamic = document.getElementById('dynamicContent');
+    if (dynamic && !dynamic._taskDelegated) {
+      dynamic.addEventListener('click', e => {
+        const toggle = e.target.closest('[data-action="toggle"]');
+        if (toggle) {
+          const item = toggle.closest('.task-item');
+          if (item) { toggleTask(item.dataset.id); }
+          return;
+        }
+        const del = e.target.closest('[data-action="delete"]');
+        if (del) {
+          const item = del.closest('.task-item');
+          if (item) { deleteTask(item.dataset.id); }
+        }
+      });
+      // 移动端部分浏览器/ WebView 对 click 响应不灵敏，补充 touchend
+      dynamic.addEventListener('touchend', e => {
+        const toggle = e.target.closest('[data-action="toggle"]');
+        if (toggle) {
+          e.preventDefault();
+          const item = toggle.closest('.task-item');
+          if (item) toggleTask(item.dataset.id);
+          return;
+        }
+        const del = e.target.closest('[data-action="delete"]');
+        if (del) {
+          e.preventDefault();
+          const item = del.closest('.task-item');
+          if (item) deleteTask(item.dataset.id);
+        }
+      });
+      dynamic._taskDelegated = true;
+    }
+  }
+  function updateProgress() {
+    const cat = CATEGORIES.find(c => c.id === currentCategory);
+    const tasks = getTodayTasks(currentCategory);
+    const total = tasks.length;
+    const done = tasks.filter(t => t.done).length;
+    let extraDone = 0, extraTotal = 0;
+    if (cat.type === 'english') {
+      const practiced = state.enPracticed[today()] || [];
+      extraDone = practiced.length;
+      extraTotal = EN_SENTENCES.length;
+    } else if (cat.type === 'reading') {
+      const read = state.booksRead || {};
+      extraDone = Object.values(read).filter(v => v).length;
+      extraTotal = BOOKS.length;
+    }
+    const cd = done + extraDone;
+    const ct = total + extraTotal;
+    const percent = ct === 0 ? 0 : Math.round(cd / ct * 100);
+    const pv = document.getElementById('progressValue');
+    const pf = document.getElementById('progressFill');
+    if (pv) pv.textContent = percent + '%';
+    if (pf) pf.style.width = percent + '%';
+  }
+  function addTask(text) {
+    text = text.trim();
+    if (!text) return;
+    getTodayTasks(currentCategory).push({ id: uid(), text, done: false, createdAt: Date.now() });
+    saveState(); renderDynamic(); renderStats(); renderMenu(); updateProgress();
+    showToast('已添加任务');
+  }
+  function toggleTask(taskId) {
+    const tasks = getTodayTasks(currentCategory);
+    const t = tasks.find(x => x.id === taskId);
+    if (t) { t.done = !t.done; saveState(); renderTaskList(); renderStats(); renderMenu(); updateProgress();
+      if (t.done) { const cat = CATEGORIES.find(c => c.id === currentCategory); showToast(`✓ ${cat.name} · 棒！`); }
+    }
+  }
+  function deleteTask(taskId) {
+    const tasks = getTodayTasks(currentCategory);
+    const idx = tasks.findIndex(x => x.id === taskId);
+    if (idx >= 0) { tasks.splice(idx, 1); saveState(); renderTaskList(); renderStats(); renderMenu(); updateProgress(); showToast('已删除'); }
+  }
+
+  // ============ 侧边栏 ============
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('show'); }
+  function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  document.getElementById('menuBtn').addEventListener('click', openSidebar);
+  overlay.addEventListener('click', closeSidebar);
+  document.getElementById('fab').addEventListener('click', () => {
+    const input = document.getElementById('taskInput');
+    if (input) { input.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  });
+  document.getElementById('syncBtn').addEventListener('click', () => { saveState(); showToast('✓ 数据已保存到本地'); });
+
+  let toastTimer;
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg; toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function render() { renderMenu(); renderHeader(); renderDynamic(); renderStats(); updateProgress(); }
+
+  render();
+  setInterval(() => {
+    const catData = state.data[currentCategory];
+    if (catData) { const last = Object.keys(catData).sort().pop(); if (last && last !== today()) render(); }
+  }, 60000);
+</script>
+</body>
+</html>
